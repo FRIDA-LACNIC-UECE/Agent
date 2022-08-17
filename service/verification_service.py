@@ -29,23 +29,28 @@ def checking_changes() -> int:
         status code.
     """
 
+    print("\n===== Initializing verification:")
+
     # Generate rows hash each table
     for table_name in get_tables_names(src_db_path=SRC_USER_DB_PATH):
-        print(table_name)
-        generate_hash_column(table_name=table_name)
+        print(f"\n===== {table_name} =====")
+        try:
+            generate_hash_column(table_name=table_name)
+        except:
+            print("table_not_ready_verification")
+            print("\nFinalizing Verification =====\n")
+            return
 
-    # Get acess token
-    token = loginApi()
-    if not token:
-        return 400
+        # Get acess token
+        token = loginApi()
+        if not token:
+            return 400
 
-    # Checking
-    for table_name in get_tables_names(src_db_path=SRC_USER_DB_PATH):
         # Start number page
         page = 0
 
         # Start size page
-        per_page = 1000
+        per_page = 100
 
         # Create table object of User Database and
         # session of User Database to run sql operations
@@ -78,13 +83,12 @@ def checking_changes() -> int:
         set_user_hash = set(results_user_data["row_hash"])
         set_cloud_hash = set(results_cloud_data["row_hash"])
 
-        print(f"===== {table_name} =====")
-
         diff_ids_user = []
         diff_ids_cloud = []
 
         # Get data in User Database and Cloud Database
-        while (page * per_page) < (primary_key_value_max_limit + (per_page * 3)):
+        while (page * per_page) <= (primary_key_value_max_limit):
+            # print(f"Page = {page}")
 
             # Get differences between User Database and Cloud Database
             diff_hashs_user = list(set_user_hash.difference(set_cloud_hash))
@@ -92,12 +96,14 @@ def checking_changes() -> int:
             for diff_hash in diff_hashs_user:
                 diff_index = results_user_data["row_hash"].index(diff_hash)
                 diff_ids_user.append(results_user_data["primary_key"][diff_index])
+            # print(f"diff_ids_user = {diff_ids_user}")
 
             diff_hashs_cloud = list(set_cloud_hash.difference(set_user_hash))
 
             for diff_hash in diff_hashs_cloud:
                 diff_index = results_cloud_data["row_hash"].index(diff_hash)
                 diff_ids_cloud.append(results_cloud_data["primary_key"][diff_index])
+            # print(f"diff_ids_cloud = {diff_ids_cloud}")
 
             page += 1
 
@@ -147,8 +153,6 @@ def checking_changes() -> int:
     session_user_db.commit()
     session_user_db.close()
 
-    print("\n========= FIM ===========\n")
-
     return 200
 
 
@@ -166,7 +170,7 @@ def check_thread():
     """
 
     # Set time period of task
-    seconds_task = 50
+    seconds_task = 30
 
     # Running Task
     while True:
