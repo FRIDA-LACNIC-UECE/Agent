@@ -1,11 +1,18 @@
-FROM python:3.8-slim-buster
+FROM python:3.11.1
+WORKDIR flask-app
+COPY app ./app
+COPY application.py .
+COPY seeder.py .
+COPY requirements.txt .
 
-WORKDIR /app
+RUN pip install -r requirements.txt
 
-COPY requirements.txt requirements.txt
+EXPOSE 5000
+ENV ENV_NAME=staging
+ENV FLASK_APP=application
+COPY entrypoint.sh .
 
-RUN pip3 install -r requirements.txt
+# RUN ["pytest"]
 
-COPY . .
-
-CMD [ "python3", "-m" , "flask", "run", "--host=0.0.0.0"]
+RUN ["chmod", "+x", "./entrypoint.sh"]
+ENTRYPOINT ["./entrypoint.sh"]
