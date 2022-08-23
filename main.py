@@ -4,10 +4,13 @@ import threading
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 import models
+import requests
 
+def initialize_database_encryption():
+    request = requests.get("http://127.0.0.1:5000/encrypt_database")
+    return request.status_code
 
 def checking_changes():
-
     # Getting Metadata
     table_names = []
     classes_db = {}
@@ -61,16 +64,20 @@ def check_thread():
         time.sleep(seconds_task)
 
 if __name__ == "__main__":
-    # Run task on thread
-    thread = threading.Thread(target=check_thread)
-    thread.start()
 
-    # Set time period of main task
-    seconds_task = 10
+    if initialize_database_encryption() == 200:
+        # Run task on thread
+        thread = threading.Thread(target=check_thread)
+        thread.start()
 
-    while True:
-        # Run main task
-        print(f"Running Main Task! - {datetime.now()}")
-        print()
-        time.sleep(seconds_task)
+        # Set time period of main task
+        seconds_task = 10
+
+        while True:
+            # Run main task
+            print(f"Running Main Task! - {datetime.now()}")
+            print()
+            time.sleep(seconds_task)
+    else:
+        print("Error in database encryption!")
     
