@@ -16,14 +16,3 @@ class SchemaNivel1(ma.Schema):
 	ordered = True
 
 
-class Nivel2(db.Model):
-	__tablename__ = 'nivel2'
-	id = db.Column(db.Integer, primary_key=True)
-	line_hash = db.Column(db.Text)
-
-class SchemaNivel2(ma.Schema):
-	class Meta:
-		fields = ('id', 'line_hash')
-	ordered = True
-
-

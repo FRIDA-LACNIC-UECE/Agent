@@ -42,6 +42,8 @@ def fix_rg(rg):
 def insert_data(engine_db, table_name, classe_db, num_of_rows):
     Faker.seed(123)
     faker = Faker(['pt_BR'])
+
+    id = 0
     
     session_db = Session(engine_db)
 
@@ -58,6 +60,7 @@ def insert_data(engine_db, table_name, classe_db, num_of_rows):
         profissao = faker.job()
 
         stmt = insert(classe_db[table_name]).values(
+            id = id,
             nome = nome,
             rg = rg,
             cpf = cpf,
@@ -68,6 +71,8 @@ def insert_data(engine_db, table_name, classe_db, num_of_rows):
             telefone = telefone,
             profissao = profissao
         )
+
+        id += 1
 
         session_db.execute(stmt)
     
@@ -83,12 +88,12 @@ if __name__ == '__main__':
     engine_db = create_engine('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, DB))
     
     create_table = "\
-        create table nivel2(\
-        id INT NOT NULL AUTO_INCREMENT,\
+        create table nivel1(\
+        id INT NOT NULL, \
         nome VARCHAR(100) NOT NULL,\
-        rg VARCHAR(20) NOT NULL,\
-        cpf VARCHAR(20) NOT NULL,\
-        idade VARCHAR(20) NOT NULL,\
+        rg VARCHAR(200) NOT NULL,\
+        cpf VARCHAR(200) NOT NULL,\
+        idade VARCHAR(200) NOT NULL,\
         data_de_nascimento DATE,\
         endereco VARCHAR(200),\
         email VARCHAR(100),\
@@ -103,6 +108,6 @@ if __name__ == '__main__':
     for table_name in engine_db.table_names():
         classes_db[f"{table_name}"] = eval(f"model_client_db.{table_name.capitalize()}")
 
-    insert_data(engine_db=engine_db, table_name='nivel2', classe_db=classes_db, num_of_rows=10000)
+    insert_data(engine_db=engine_db, table_name='nivel1', classe_db=classes_db, num_of_rows=10000)
 
     print('FIM')
