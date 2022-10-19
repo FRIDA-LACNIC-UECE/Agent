@@ -2,15 +2,20 @@ import os
 
 from sqlalchemy import create_engine
 
+from config import (
+    TYPE_DATABASE, USER_DATABASE, PASSWORD_DATABASE, 
+    HOST, PORT, NAME_DATABASE
+)
 
-def create_model_client(src_db):
+
+def create_model_client(src_db_client):
     # Create classes to model the database
-    os.system(f"sqlacodegen {src_db} > ./model/model_client_db.py")
+    os.system(f"sqlacodegen {src_db_client} > ./model/model_client_db.py")
 
     from model import model_client_db
 
-    # Create connection database
-    engine_db = create_engine(src_db)
+    # Create connection client database
+    engine_db_client = create_engine(src_db_client)
 
     # Get classes database and create schemas
     classes_db = {}
@@ -20,7 +25,7 @@ def create_model_client(src_db):
     # Import Schema of Marshmallow
     initial_string += "from marshmallow import Schema\n\n"
 
-    for table_name in engine_db.table_names():
+    for table_name in engine_db_client.table_names():
         #print(table_name.capitalize())
         classes_db[f"{table_name}"] = eval(f"model_client_db.{table_name.capitalize()}")
 
@@ -48,8 +53,8 @@ def create_model_user(src_db_client):
 
     from model import model_client_db
 
-    # ?
-    engine_db = create_engine(src_db_client)
+    # Create connection client database
+    engine_db_client = create_engine(src_db_client)
 
     # Get classes database and create schemas
     classes_db = {}
@@ -63,7 +68,7 @@ def create_model_user(src_db_client):
     initial_string += "from sqlalchemy.ext.declarative import declarative_base\n"
     initial_string += "from controller import db, ma\n\n\n"
 
-    for table_name in engine_db.table_names():
+    for table_name in engine_db_client.table_names():
         
         # Create model user database
         initial_string += f"class {table_name.capitalize()}(db.Model):\n"
@@ -80,8 +85,3 @@ def create_model_user(src_db_client):
     file_schema.write(initial_string)
 
     return
-    
-    
-if __name__ == '__main__':
-    create_model_client(src_db="mysql://root:Dd16012018@localhost:3306/ficticio_database")
-    create_model_user(src_db_client="mysql://root:Dd16012018@localhost:3306/ficticio_database")

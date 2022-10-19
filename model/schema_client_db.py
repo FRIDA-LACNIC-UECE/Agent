@@ -5,3 +5,8 @@ class SchemaNivel1(Schema):
 		fields = ('id','nome','rg','cpf','idade','data_de_nascimento','endereco','email','telefone','profissao')
 		ordered = True
 
+class SchemaNivel2(Schema):
+	class Meta:
+		fields = ('id','nome','rg','cpf','idade','data_de_nascimento','endereco','email','telefone','profissao')
+		ordered = True
+

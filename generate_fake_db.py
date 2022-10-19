@@ -87,8 +87,8 @@ if __name__ == '__main__':
 
     engine_db = create_engine('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, DB))
     
-    create_table = "\
-        create table nivel1(\
+    '''reate_table = "\
+        create table nivel2(\
         id INT NOT NULL, \
         nome VARCHAR(100) NOT NULL,\
         rg VARCHAR(200) NOT NULL,\
@@ -102,12 +102,13 @@ if __name__ == '__main__':
         PRIMARY KEY (id)\
         );"
 
-    engine_db.execute(create_table)
+    engine_db.execute(create_table)'''
+
 
     classes_db = {}
     for table_name in engine_db.table_names():
         classes_db[f"{table_name}"] = eval(f"model_client_db.{table_name.capitalize()}")
 
-    insert_data(engine_db=engine_db, table_name='nivel1', classe_db=classes_db, num_of_rows=10000)
+    insert_data(engine_db=engine_db, table_name='nivel2', classe_db=classes_db, num_of_rows=10000)
 
     print('FIM')

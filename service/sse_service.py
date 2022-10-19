@@ -2,15 +2,16 @@ import time
 
 import hashlib
 import pandas as pd
+from sqlalchemy import create_engine, MetaData, Table, select, inspect, update, insert
+from sqlalchemy_utils import database_exists, create_database
 from sqlalchemy.orm import Session
-from sqlalchemy import create_engine, insert, select, update
 
 from model import model_client_db, model_user_db, schema_client_db
 
 
-def include_hash_column(tn, classes_db, engine_db, raw_data):
+def include_hash_column(engine_client_db, engine_user_db, table_client_db, table_user_db, src_table, raw_data):
     
-    session_db = Session(engine_db['user']) # Section to run sql operation
+    session_user_db = Session(engine_user_db) # Section to run sql operation
 
     id = 1
 
@@ -21,23 +22,23 @@ def include_hash_column(tn, classes_db, engine_db, raw_data):
         #print(hashed_line)
 
         stmt = (
-            insert(classes_db['user'][f"{tn}"]).
+            insert(table_user_db).
             values(id=id, line_hash=hashed_line)
         )
 
-        session_db.execute(stmt)
+        session_user_db.execute(stmt)
 
         id = id + 1
 
         print(row)
     
-    session_db.commit()
-    session_db.close()
+    session_user_db.commit()
+    session_user_db.close()
 
 
-def update_hash_column(tn, classes_db, engine_db, raw_data):
+def update_hash_column(engine_client_db, engine_user_db, table_client_db, table_user_db, src_table, raw_data):
 
-    session_db = Session(engine_db['user']) # Section to run sql operation
+    session_user_db = Session(engine_user_db) # Section to run sql operation
 
     id = 1
 
@@ -48,22 +49,22 @@ def update_hash_column(tn, classes_db, engine_db, raw_data):
         #print(hashed_line)
 
         stmt = (
-            update(classes_db['user'][f"{tn}"]).
-            where(classes_db['user'][f"{tn}"].id == id).
+            update(table_user_db).
+            where(table_user_db.id == id).
             values(line_hash=hashed_line)
         )
 
-        session_db.execute(stmt)
+        session_user_db.execute(stmt)
 
         id = id + 1
 
         print(row)
     
-    session_db.commit()
-    session_db.close()
+    session_user_db.commit()
+    session_user_db.close()
 
 
-def searchable_encryption(master_key, columns_list, tn, engine_db, classes_db, schemas_db, hash_already_generated):
+def searchable_encryption(engine_client_db, engine_user_db, src_table, columns_list, table_client_db, table_user_db, master_key, hash_already_generated):
     index_header = []
     for i in range(1, len(columns_list) + 1):
         index_header.append("index_" + str(i))
@@ -71,58 +72,70 @@ def searchable_encryption(master_key, columns_list, tn, engine_db, classes_db, s
     from_db = []
     document_index = []
 
-    session_db = Session(engine_db['client']) # Section to run sql operation
+    session_client_db = Session(engine_client_db) # Section to run sql operation
 
     size = 1000
-    statement = select(classes_db['client'][f"{tn}"])
-    results_proxy = session_db.execute(statement).scalars() # Proxy to get data on batch
+    statement = select(table_client_db)
+    results_proxy = session_client_db.execute(statement).scalars() # Proxy to get data on batch
     results = results_proxy.fetchmany(size) # Getting data
 
     while results:
-        #print(results[0].to_list())
+        from_db = []
+
         for result in results:
-            from_db.append(list(schemas_db['client'][f"{tn}"].dump(result).values()))
+            from_db.append(list(result))
+            print(result)
+
+        #print(from_db)
+        session_client_db.close()
+
+        raw_data = pd.DataFrame(from_db, columns=columns_list)
+        features = list(raw_data)
+        raw_data = raw_data.values
+
+        column_number = [i for i in range(0, len(features)) if features[i] in columns_list]
+        
+        if hash_already_generated:
+            update_hash_column(engine_client_db, engine_user_db, table_client_db, table_user_db, src_table, raw_data)
+        else:
+            include_hash_column(engine_client_db, engine_user_db, table_client_db, table_user_db, src_table, raw_data)
 
         results = results_proxy.fetchmany(size) # Getting data
     
-    #print(from_db)
-    session_db.close()
-
-    raw_data = pd.DataFrame(from_db, columns=columns_list)
-    features = list(raw_data)
-    raw_data = raw_data.values
-
-    column_number = [i for i in range(0, len(features)) if features[i] in columns_list]
     
-    if hash_already_generated:
-        update_hash_column(tn, classes_db, engine_db, raw_data)
-    else:
-        include_hash_column(tn, classes_db, engine_db, raw_data)
+def generate_hash(src_client_db_path, src_user_db_path, src_table):
+    # Creating connection with client database
+    engine_client_db = create_engine(src_client_db_path)
+    session_client_db = Session(engine_client_db)
 
-    
-def generate_hash(client_db_name, user_db_name):
-    engine_db = {}
+    # Get columns of table
+    columns_list = []
+    insp = inspect(engine_client_db)
+    columns_table = insp.get_columns(src_table)
 
-    engine_db['client'] = create_engine(f"mysql://root:Dd16012018@localhost:3306/ficticio_database")
-    engine_db['user'] = create_engine(f"mysql://root:Dd16012018@localhost:3306/{user_db_name}")
-    
-    table_names = [] #name of the table in database to be encrypted
+    for c in columns_table :
+        columns_list.append(str(c['name']))
+    #print(columns_list)
 
-    classes_db = {} # classes to model database
-    classes_db['client'] = {}
-    classes_db['user'] = {}
+    # Create engine, reflect existing columns, and create table object for oldTable
+    # change this for your source database
+    engine_client_db._metadata = MetaData(bind=engine_client_db)
+    engine_client_db._metadata.reflect(engine_client_db)  # get columns from existing table
+    engine_client_db._metadata.tables[src_table].columns = [
+        i for i in engine_client_db._metadata.tables[src_table].columns if (i.name in columns_list)]
+    table_client_db = Table(src_table, engine_client_db._metadata)
 
-    schemas_db = {} # schemas of models_original_db
-    schemas_db['client'] = {}
-    schemas_db['user'] = {}
-    
-    for table_name in engine_db['client'].table_names():
-        table_names.append(table_name)
-        classes_db['client'][f"{table_name}"] = eval(f"model_client_db.{table_name.capitalize()}")
-        schemas_db['client'][f"{table_name}"] = eval(f"schema_client_db.Schema{table_name.capitalize()}()")
-        classes_db['user'][f"{table_name}"] = eval(f"model_user_db.{table_name.capitalize()}")
-        schemas_db['user'][f"{table_name}"] = eval(f"model_user_db.Schema{table_name.capitalize()}()")
-        #print(table_name) 
+    # Creating connection with client database
+    engine_user_db = create_engine(src_user_db_path)
+    session_user_db = Session(engine_client_db)
+
+    # Create engine, reflect existing columns, and create table object for oldTable
+    # change this for your source database
+    engine_user_db._metadata = MetaData(bind=engine_user_db)
+    engine_user_db._metadata.reflect(engine_user_db)  # get columns from existing table
+    engine_user_db._metadata.tables[src_table].columns = [
+        i for i in engine_user_db._metadata.tables[src_table].columns if (i.name in ["id", "line_hash"])]
+    table_user_db = Table(src_table, engine_user_db._metadata)
 
     master_key_file_name = "./service/masterkey" #password autentication
     master_key = open(master_key_file_name).read()
@@ -135,33 +148,24 @@ def generate_hash(client_db_name, user_db_name):
 
     total_time = 0
 
-    for tn in table_names:
+    start_time = time.time()
+    
+    # Checking if the hash lines already exist
+    data_user_per_table = session_user_db.query(table_user_db).all()
+    hash_already_generated = False
+    
+    #If the hashed lines already exist then delete it to generate the hash again
+    if data_user_per_table: 
+        hash_already_generated = True
 
-        start_time = time.time()
-        columns_list = []
-        data_description = classes_db['client'][f"{tn}"].__table__.columns.keys()
-        
-        # Checking if the hash lines already exist
-        session_db = Session(engine_db['user']) # Section to run sql operation
-        data_user_per_table = session_db.query(classes_db['user'][f"{tn}"]).all()
-        hash_already_generated = False
-        
-        #If the hashed lines already exist then delete it to generate the hash again
-        if data_user_per_table: 
-            hash_already_generated = True
-        #print(tn)
+    searchable_encryption(engine_client_db, engine_user_db, src_table, columns_list, table_client_db, table_user_db, master_key, hash_already_generated)
 
-        for column in data_description:
-            columns_list.append(column)
-        #print(columns_list)
-
-        searchable_encryption(master_key, columns_list, tn, engine_db, classes_db, schemas_db, hash_already_generated)
-
-        time_cost = time.time() - start_time
-        total_time += time_cost
+    time_cost = time.time() - start_time
+    total_time += time_cost
 
     print(total_time)
     print("Finished")
+
 
 if __name__ == "__main__":
     generate_hash('ficticio_database', 'UserDB')
