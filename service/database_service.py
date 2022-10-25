@@ -5,7 +5,6 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
 def checking_changes():
-    # Getting Metadata
     # Connecting on Local DataBase
     localDB_name = "LocalDB"
     engine_local_db = create_engine(f"sqlite:///{localDB_name}")

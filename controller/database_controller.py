@@ -1,4 +1,4 @@
-import time
+import os
 import threading
 from datetime import datetime
 
@@ -45,7 +45,7 @@ def initializeDatabase():
 
             table_user_db = Table(
                 table, engine_user_db._metadata,
-                Column("id", Integer, primary_key=True),
+                Column("id", Integer),
                 Column("line_hash", Text)
             )
         

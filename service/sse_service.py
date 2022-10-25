@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 
 
 def include_hash_column(engine_client_db, engine_user_db, table_client_db, table_user_db, src_table, raw_data):
-    
     session_user_db = Session(engine_user_db) # Section to run sql operation
 
     for row in range(raw_data.shape[0]):
@@ -24,7 +23,7 @@ def include_hash_column(engine_client_db, engine_user_db, table_client_db, table
         )
 
         session_user_db.execute(stmt)
-    
+
     session_user_db.commit()
     session_user_db.close()
 
@@ -75,7 +74,7 @@ def searchable_encryption(engine_client_db, engine_user_db, src_table, client_co
 
         for result in results:
             from_db.append(list(result))
-            print(result)
+            #print(result)
 
         session_client_db.close()
 
@@ -85,13 +84,15 @@ def searchable_encryption(engine_client_db, engine_user_db, src_table, client_co
 
         column_number = [i for i in range(0, len(features)) if features[i] in client_columns_list]
         
+        print(raw_data)
+
+        results = results_proxy.fetchmany(size) # Getting data
+
         if hash_already_generated:
             update_hash_column(engine_client_db, engine_user_db, table_client_db, table_user_db, src_table, raw_data)
         else:
             include_hash_column(engine_client_db, engine_user_db, table_client_db, table_user_db, src_table, raw_data)
 
-        results = results_proxy.fetchmany(size) # Getting data
-    
     
 def generate_hash(src_client_db_path, src_user_db_path, src_table):
     # Creating connection with client database
