@@ -1,4 +1,4 @@
-import os
+'''import os
 
 from sqlalchemy import create_engine
 
@@ -84,4 +84,4 @@ def create_model_user(src_db_client):
 
     file_schema.write(initial_string)
 
-    return
+    return'''
