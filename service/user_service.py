@@ -4,10 +4,7 @@ from flask import jsonify
 
 from config import BASE_URL, USER_EMAIL, USER_PASSWORD
 
-from controller import app, db
 
-
-@app.route('/loginApi', methods=['GET'])
 def loginApi():
     try:
 
@@ -19,6 +16,9 @@ def loginApi():
 
         response = requests.post(url, json = body)
 
-        return jsonify({"token": f"Bearer {response.json()['token']}"}), 200
+        if response.status_code == 200:
+            return f"Bearer {response.json()['token']}"
+        else:
+            return None
     except:
-        return jsonify({'message': 'user_invalid_data'}), 400
+        return None

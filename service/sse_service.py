@@ -1,12 +1,19 @@
 import time
+import requests
 
 import hashlib
 import pandas as pd
 from sqlalchemy import create_engine, MetaData, Table, select, inspect, update, insert
 from sqlalchemy.orm import Session
 
+from config import BASE_URL
+
+from service.user_service import loginApi
+
 
 def include_hash_column(engine_client_db, engine_user_db, table_client_db, table_user_db, src_table, raw_data):
+    print("Chegue3")
+
     session_user_db = Session(engine_user_db) # Section to run sql operation
 
     for row in range(raw_data.shape[0]):
@@ -21,6 +28,8 @@ def include_hash_column(engine_client_db, engine_user_db, table_client_db, table
             insert(table_user_db).
             values(id=raw_data.iloc[row]['id'], line_hash=hashed_line)
         )
+
+        print(row)
 
         session_user_db.execute(stmt)
 
@@ -46,23 +55,25 @@ def update_hash_column(engine_client_db, engine_user_db, table_client_db, table_
             values(line_hash=hashed_line)
         )
 
-        session_user_db.execute(stmt)
-
         print(row)
+
+        session_user_db.execute(stmt)
     
     session_user_db.commit()
     session_user_db.close()
 
 
 def searchable_encryption(engine_client_db, engine_user_db, src_table, client_columns_list, table_client_db, table_user_db, master_key, hash_already_generated):
-    index_header = []
-    for i in range(1, len(client_columns_list) + 1):
-        index_header.append("index_" + str(i))
+    # Section to run sql operation
+    session_client_db = Session(engine_client_db) 
 
-    from_db = []
-    document_index = []
-
-    session_client_db = Session(engine_client_db) # Section to run sql operation
+    # Section to run sql operation
+    session_user_db = Session(engine_user_db) 
+    
+    # Delete all rows of table
+    session_user_db.query(table_user_db).delete()
+    session_user_db.commit()
+    session_user_db.close()
 
     size = 1000
     statement = select(table_client_db)
@@ -70,31 +81,27 @@ def searchable_encryption(engine_client_db, engine_user_db, src_table, client_co
     results = results_proxy.fetchmany(size) # Getting data
 
     while results:
+        print("Chegue2")
         from_db = []
 
         for result in results:
             from_db.append(list(result))
-            #print(result)
 
         session_client_db.close()
 
         raw_data = pd.DataFrame(from_db, columns=client_columns_list)
         features = list(raw_data)
-        #raw_data = raw_data.values
 
         column_number = [i for i in range(0, len(features)) if features[i] in client_columns_list]
-        
-        print(raw_data)
 
         results = results_proxy.fetchmany(size) # Getting data
 
-        if hash_already_generated:
-            update_hash_column(engine_client_db, engine_user_db, table_client_db, table_user_db, src_table, raw_data)
-        else:
-            include_hash_column(engine_client_db, engine_user_db, table_client_db, table_user_db, src_table, raw_data)
+        include_hash_column(engine_client_db, engine_user_db, table_client_db, table_user_db, src_table, raw_data)
 
     
 def generate_hash(src_client_db_path, src_user_db_path, src_table):
+
+    print("Chegue1")
     # Creating connection with client database
     engine_client_db = create_engine(src_client_db_path)
     session_client_db = Session(engine_client_db)
@@ -151,3 +158,20 @@ def generate_hash(src_client_db_path, src_user_db_path, src_table):
         hash_already_generated = True
 
     searchable_encryption(engine_client_db, engine_user_db, src_table, client_columns_list, table_client_db, table_user_db, master_key, hash_already_generated)
+
+
+def show_cloud_hash_rows(id_db, table, page, token):
+
+    url = f'{BASE_URL}/showHashRows'
+    body = {
+        "id_db": id_db,
+        "table": table,
+        "page": page,
+        "per_page": 1000
+    }
+
+    header = {"Authorization": token}
+
+    response = requests.post(url, json=body, headers=header)
+
+    return response.json()

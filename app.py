@@ -10,7 +10,7 @@ from config import (
     HOST, PORT, NAME_DATABASE
 )
 from controller import (
-    app, db, database_controller, sse_contoller
+    app, db, user_controller, database_controller, sse_contoller
 )
 
 

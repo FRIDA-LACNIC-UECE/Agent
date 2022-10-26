@@ -11,7 +11,7 @@ from config import (
     HOST, PORT, NAME_DATABASE
 )
 from controller import app, db
-from service.database_service import check_thread
+from service.database_service import check_thread, checking_changes
 
 
 @app.route('/initializeDatabase', methods=['GET'])
@@ -58,13 +58,10 @@ def initializeDatabase():
 
 @app.route('/initializeVerification', methods=['GET'])
 def initializeVerification():
-    try:
-        # Run task on thread
-        thread = threading.Thread(target=check_thread)
-        thread.start()
-        return jsonify({'message': "verification_initialized"}), 201
-    except:
-        return jsonify({'message': 'verification_invalid_data'}), 400
+    # Run task on thread
+    thread = threading.Thread(target=check_thread)
+    thread.start()
+    return jsonify({'message': "verification_initialized"}), 201
 
 
     
