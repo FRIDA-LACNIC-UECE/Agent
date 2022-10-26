@@ -160,14 +160,14 @@ def generate_hash(src_client_db_path, src_user_db_path, src_table):
     searchable_encryption(engine_client_db, engine_user_db, src_table, client_columns_list, table_client_db, table_user_db, master_key, hash_already_generated)
 
 
-def show_cloud_hash_rows(id_db, table, page, token):
+def show_cloud_hash_rows(id_db, table, page, per_page, token):
 
     url = f'{BASE_URL}/showHashRows'
     body = {
         "id_db": id_db,
         "table": table,
         "page": page,
-        "per_page": 1000
+        "per_page": per_page
     }
 
     header = {"Authorization": token}
