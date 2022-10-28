@@ -14,6 +14,88 @@ from service.user_service import loginApi
 from service.sse_service import generate_hash, show_cloud_hash_rows
 
 
+def get_columns_database(engine_db, table):
+    columns_list = []
+    insp = inspect(engine_db)
+    columns_table = insp.get_columns(table)
+
+    for c in columns_table :
+        columns_list.append(str(c['name']))
+
+    return columns_list
+
+
+def paginate_user_database(session_db, table_db, page, per_page):
+    # Get data in User Database
+    query = session_db.query(
+        table_db
+    ).filter(
+        table_db.c[0] >= (page*per_page), 
+        table_db.c[0] <= ((page+1)*per_page)
+    )
+
+    results_user_data = {}
+    results_user_data['primary_key'] = []
+    results_user_data['row_hash'] = []
+
+    for row in query:
+        results_user_data['primary_key'].append(row[0])
+        results_user_data['row_hash'].append(row[1])
+    
+    return results_user_data
+
+
+def get_id_cloud_database():
+
+    url = f'{BASE_URL}/getDatabases'
+
+    token = loginApi()
+
+    if not token:
+        return None, 400
+
+    header = {"Authorization": token}
+    databases_response = requests.get(url, headers=header)
+
+    id_db = None
+    for database in databases_response.json():
+        if (
+            database["name_db_type"] == TYPE_DATABASE and 
+            database["user"] == USER_DATABASE and
+            database["password"] == PASSWORD_DATABASE and
+            database["host"] == HOST and
+            database["port"] == int(PORT) and
+            database["name"] == NAME_DATABASE
+        ):
+            id_db = database["id"]
+            
+            return id_db, 200
+
+    if id_db == None:
+        return None, 404
+
+
+def delete_hash_rows(id_db, primary_key_list, table):
+    url = f'{BASE_URL}/deleteRowsHash'
+
+    token = loginApi()
+
+    if not token:
+        return 400
+
+    body = {
+        "id_db": id_db, 
+        "primary_key_list": primary_key_list,
+        "table": table
+    }
+
+    header = {"Authorization": token}
+
+    response = requests.post(url, json=body, headers=header)
+    
+    return 200
+
+
 def checking_changes():
     # Get path of Client DataBase
     src_client_db_path = "{}://{}:{}@{}:{}/{}".format(
@@ -37,50 +119,24 @@ def checking_changes():
         generate_hash(src_client_db_path, src_user_db_path, table)
 
     # Get id cloud database
-    url = f'{BASE_URL}/getDatabases'
-
-    response = loginApi()
-
-    if not response:
+    id_db, state_code_id_db = get_id_cloud_database()
+    if not id_db:
         return 400
-
-    header = {"Authorization": response}
-    response = requests.get(url, headers=header)
-
-    id_db = None
-    for database in response.json():
-        if (
-            database["name_db_type"] == TYPE_DATABASE and 
-            database["user"] == USER_DATABASE and
-            database["password"] == PASSWORD_DATABASE and
-            database["host"] == HOST and
-            database["port"] == int(PORT) and
-            database["name"] == NAME_DATABASE
-        ):
-            id_db = database["id"]
-
-    if id_db == None:
-        return 404
-
+    
+    # Get acess token
     token = loginApi()
-
-    if not response:
+    if not token:
         return 400
 
     # Checking
     for table in list(engine_user_db.table_names()):
+        # Start number page
         page = 0
+
+        # Start size page
         per_page = 1000
 
-        # Get columns of table
-        client_user_list = []
-        insp = inspect(engine_user_db)
-        columns_table = insp.get_columns(table)
-        for c in columns_table :
-            client_user_list.append(str(c['name']))
-
-        # Create engine, reflect existing columns, and create table object for oldTable
-        # change this for your source database
+        # Create engine, reflect existing columns, and create table object of table_user_db
         engine_user_db._metadata.tables[table].columns = [
             i for i in engine_user_db._metadata.tables[table].columns if (i.name in ["id", "line_hash"])]
         table_user_db = Table(table, engine_user_db._metadata)
@@ -89,21 +145,9 @@ def checking_changes():
         results_cloud_data = show_cloud_hash_rows(id_db, table, page, per_page, token)
 
         # Get data in User Database
-        query = session_user_db.query(
-            table_user_db
-        ).filter(
-            table_user_db.c[0] >= (page*per_page), 
-            table_user_db.c[0] <= ((page+1)*per_page)
-        )
+        results_user_data = paginate_user_database(session_user_db, table_user_db, page, per_page)
 
-        results_user_data = {}
-        results_user_data['primary_key'] = []
-        results_user_data['row_hash'] = []
-        for row in query:
-            results_user_data['primary_key'].append(row[0])
-            results_user_data['row_hash'].append(row[1])
-
-        # Trasnform to set
+        # Transforme to set
         set_user_hash = set(results_user_data['row_hash'])
         set_cloud_hash = set(results_cloud_data['row_hash'])
 
@@ -114,8 +158,6 @@ def checking_changes():
 
         # Get data in User Database and Cloud Database
         while len(results_user_data['primary_key']) != 0:
-            # Get start id
-            start_id = (page*per_page)  
 
             # Get differences between User Database and Cloud Database
             diff_hashs_user = list(set_user_hash.difference(set_cloud_hash))
@@ -136,35 +178,28 @@ def checking_changes():
             results_cloud_data = show_cloud_hash_rows(id_db, table, page, per_page, token)
 
             # Get data in User Database
-            query = session_user_db.query(
-                table_user_db
-            ).filter(
-                table_user_db.c[0] >= (page*per_page), 
-                table_user_db.c[0] <= ((page+1)*per_page)
-            )
+            results_user_data = paginate_user_database(session_user_db, table_user_db, page, per_page)
 
-            results_user_data = {}
-            results_user_data['primary_key'] = []
-            results_user_data['row_hash'] = []
-            for row in query:
-                results_user_data['primary_key'].append(row[0])
-                results_user_data['row_hash'].append(row[1])
-
-            # Trasnform to set
+            # Transforme to set
             set_user_hash = set(results_user_data['row_hash'])
             set_cloud_hash = set(results_cloud_data['row_hash'])
 
-        # Get differences
+        # Get differences between user database and cloud database
         diff_ids_user = set(diff_ids_user)
         diff_ids_cloud = set(diff_ids_cloud)
 
-        add_ids = diff_ids_user.difference(diff_ids_cloud)
-        update_ids = diff_ids_user.intersection(diff_ids_cloud)
-        remove_ids = diff_ids_cloud.difference(diff_ids_user)
+        # Get differences (add, update, remove)
+        add_ids = list(diff_ids_user.difference(diff_ids_cloud))
+        update_ids = list(diff_ids_user.intersection(diff_ids_cloud))
+        remove_ids = list(diff_ids_cloud.difference(diff_ids_user))
 
-        print(f"Add ids -> {list(add_ids)}")
-        print(f"Update ids -> {list(update_ids)}")
-        print(f"Remove ids -> {list(remove_ids)}")
+        print(f"Add ids -> {add_ids}")
+        print(f"Update ids -> {update_ids}")
+        print(f"Remove ids -> {remove_ids}")
+
+        # Delete remove removed row on cloud database
+        if len(remove_ids) != 0:
+            delete_hash_rows(id_db, remove_ids, table)
 
     print("\n\n========= FIM ===========\n\n")
 
