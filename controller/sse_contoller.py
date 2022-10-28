@@ -30,7 +30,6 @@ def generate_hash():
 
         # Run hash generator for each client database table
         for table in list(engine_user_db.table_names()):
-            print(table)
             sse_service.generate_hash(src_client_db_path, src_user_db_path, table)
     else:
         sse_service.generate_hash(src_client_db_path, src_user_db_path, src_table)

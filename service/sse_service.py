@@ -12,7 +12,6 @@ from service.user_service import loginApi
 
 
 def include_hash_column(engine_client_db, engine_user_db, table_client_db, table_user_db, src_table, raw_data):
-    print("Chegue3")
 
     session_user_db = Session(engine_user_db) # Section to run sql operation
 
@@ -29,7 +28,7 @@ def include_hash_column(engine_client_db, engine_user_db, table_client_db, table
             values(id=raw_data.iloc[row]['id'], line_hash=hashed_line)
         )
 
-        print(row)
+        #print(raw_data.iloc[row]['id'])
 
         session_user_db.execute(stmt)
 
@@ -81,7 +80,6 @@ def searchable_encryption(engine_client_db, engine_user_db, src_table, client_co
     results = results_proxy.fetchmany(size) # Getting data
 
     while results:
-        print("Chegue2")
         from_db = []
 
         for result in results:
@@ -101,7 +99,6 @@ def searchable_encryption(engine_client_db, engine_user_db, src_table, client_co
     
 def generate_hash(src_client_db_path, src_user_db_path, src_table):
 
-    print("Chegue1")
     # Creating connection with client database
     engine_client_db = create_engine(src_client_db_path)
     session_client_db = Session(engine_client_db)

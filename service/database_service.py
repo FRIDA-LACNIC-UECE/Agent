@@ -1,4 +1,5 @@
 import time
+from turtle import update
 import requests
 
 from sqlalchemy import create_engine, select, inspect, MetaData, Table
@@ -48,7 +49,6 @@ def checking_changes():
 
     id_db = None
     for database in response.json():
-        print(database["password"])
         if (
             database["name_db_type"] == TYPE_DATABASE and 
             database["user"] == USER_DATABASE and
@@ -87,9 +87,6 @@ def checking_changes():
 
         # Get data in Cloud Database
         results_cloud_data = show_cloud_hash_rows(id_db, table, page, per_page, token)
-        
-        # Get start id
-        start_id = 0
 
         # Get data in User Database
         query = session_user_db.query(
@@ -100,18 +97,38 @@ def checking_changes():
         )
 
         results_user_data = {}
+        results_user_data['primary_key'] = []
+        results_user_data['row_hash'] = []
         for row in query:
-            results_user_data[f"{row[0]}"] = row[1]
-        
-        add_id = []
+            results_user_data['primary_key'].append(row[0])
+            results_user_data['row_hash'].append(row[1])
+
+        # Trasnform to set
+        set_user_hash = set(results_user_data['row_hash'])
+        set_cloud_hash = set(results_cloud_data['row_hash'])
+
+        print(f"===== {table} =====")
+
+        diff_ids_user = []
+        diff_ids_cloud = []
 
         # Get data in User Database and Cloud Database
-        while len(results_user_data) != 0:
+        while len(results_user_data['primary_key']) != 0:
+            # Get start id
+            start_id = (page*per_page)  
 
-            if len(results_cloud_data) == 0:
-                print("dddddd")
-                ids = [element[0] for element in results_cloud_data]
-                add_id = add_id + ids
+            # Get differences between User Database and Cloud Database
+            diff_hashs_user = list(set_user_hash.difference(set_cloud_hash))
+
+            for diff_hash in diff_hashs_user:
+                diff_index = results_user_data['row_hash'].index(diff_hash)
+                diff_ids_user.append(results_user_data['primary_key'][diff_index])
+
+            diff_hashs_cloud = list(set_cloud_hash.difference(set_user_hash))
+
+            for diff_hash in diff_hashs_cloud:
+                diff_index = results_cloud_data['row_hash'].index(diff_hash)
+                diff_ids_cloud.append(results_cloud_data['primary_key'][diff_index])
 
             page += 1
 
@@ -127,11 +144,27 @@ def checking_changes():
             )
 
             results_user_data = {}
+            results_user_data['primary_key'] = []
+            results_user_data['row_hash'] = []
             for row in query:
-                results_user_data[f"{row[0]}"] = row[1]
-            
-        print(f"===== {table} =====")
-        print(f"add_ids ->>> {add_id}")
+                results_user_data['primary_key'].append(row[0])
+                results_user_data['row_hash'].append(row[1])
+
+            # Trasnform to set
+            set_user_hash = set(results_user_data['row_hash'])
+            set_cloud_hash = set(results_cloud_data['row_hash'])
+
+        # Get differences
+        diff_ids_user = set(diff_ids_user)
+        diff_ids_cloud = set(diff_ids_cloud)
+
+        add_ids = diff_ids_user.difference(diff_ids_cloud)
+        update_ids = diff_ids_user.intersection(diff_ids_cloud)
+        remove_ids = diff_ids_cloud.difference(diff_ids_user)
+
+        print(f"Add ids -> {list(add_ids)}")
+        print(f"Update ids -> {list(update_ids)}")
+        print(f"Remove ids -> {list(remove_ids)}")
 
     print("\n\n========= FIM ===========\n\n")
 
