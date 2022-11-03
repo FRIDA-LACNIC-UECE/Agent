@@ -3,9 +3,8 @@ from faker import Faker
 
 import re
 import pandas as pd
-from model import model_client_db
 from sqlalchemy.orm import Session
-from sqlalchemy import create_engine, insert
+from sqlalchemy import create_engine, insert, inspect, Table, MetaData
 from sqlalchemy.types import Integer, Enum, Date
 
 
@@ -39,7 +38,27 @@ def fix_rg(rg):
     rg = str(rg)
     return rg.replace('X', '0')
 
-def insert_data(engine_db, table_name, classe_db, num_of_rows):
+def insert_data(engine_db, table_name, num_of_rows):
+    # Creating connection with client database
+    session_client_db = Session(engine_db)
+
+    # Get columns of table
+    client_columns_list = []
+    insp = inspect(engine_db)
+    columns_table = insp.get_columns(table_name)
+
+    for c in columns_table :
+        client_columns_list.append(str(c['name']))
+    #print(client_columns_list)
+
+    # Create engine, reflect existing columns, and create table object for oldTable
+    # change this for your source database
+    engine_db._metadata = MetaData(bind=engine_db)
+    engine_db._metadata.reflect(engine_db)  # get columns from existing table
+    engine_db._metadata.tables[table_name].columns = [
+        i for i in engine_db._metadata.tables[table_name].columns if (i.name in client_columns_list)]
+    table_client_db = Table(table_name, engine_db._metadata)
+
     Faker.seed(123)
     faker = Faker(['pt_BR'])
 
@@ -59,7 +78,7 @@ def insert_data(engine_db, table_name, classe_db, num_of_rows):
         telefone = faker.cellphone_number()
         profissao = faker.job()
 
-        stmt = insert(classe_db[table_name]).values(
+        stmt = insert(table_client_db).values(
             id = id,
             nome = nome,
             rg = rg,
@@ -87,8 +106,8 @@ if __name__ == '__main__':
 
     engine_db = create_engine('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, DB))
     
-    '''reate_table = "\
-        create table nivel2(\
+    '''create_table = "\
+        create table nivel1(\
         id INT NOT NULL, \
         nome VARCHAR(100) NOT NULL,\
         rg VARCHAR(200) NOT NULL,\
@@ -104,11 +123,6 @@ if __name__ == '__main__':
 
     engine_db.execute(create_table)'''
 
-
-    classes_db = {}
-    for table_name in engine_db.table_names():
-        classes_db[f"{table_name}"] = eval(f"model_client_db.{table_name.capitalize()}")
-
-    insert_data(engine_db=engine_db, table_name='nivel2', classe_db=classes_db, num_of_rows=10000)
+    insert_data(engine_db=engine_db, table_name='nivel1', num_of_rows=10000)
 
     print('FIM')

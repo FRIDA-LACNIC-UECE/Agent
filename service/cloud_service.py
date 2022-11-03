@@ -4,7 +4,7 @@ import pandas as pd
 
 from config import (
     TYPE_DATABASE, USER_DATABASE, PASSWORD_DATABASE, 
-    HOST, PORT, NAME_DATABASE, BASE_URL
+    HOST, PORT, NAME_DATABASE, BASE_URL, PRIMARY_KEY
 )
 
 from service.user_service import loginApi
@@ -70,13 +70,13 @@ def insert_cloud_hash_rows(id_db, primary_key_list, table):
 
     # Get acess token
     token = loginApi()
-    print("\n+++\n")
     
     # Get sensitive columns names of Client Database
     sensitive_columns = get_sensitive_columns(id_db, token)['sensitive_columns']
+    print(f"sensitive_columns = {sensitive_columns}")
 
     # Add primary key in sensitive columns only to query
-    sensitive_columns.append("id")
+    sensitive_columns.append(PRIMARY_KEY)
     print(sensitive_columns)
 
     # Create table object of Client Database and 
@@ -87,7 +87,7 @@ def insert_cloud_hash_rows(id_db, primary_key_list, table):
     
     # Get index of primary key column to Client Database
     client_primary_key_index = get_index_column_table_object(
-        table_client_db, "id"
+        table_client_db, PRIMARY_KEY
     )
     
     # Get database rows to insert on Client Database
@@ -105,7 +105,7 @@ def insert_cloud_hash_rows(id_db, primary_key_list, table):
     body = {
         "id_db": id_db,
         "table": table,
-        "rows_to_encrypt": client_rows_to_insert,
+        "rows_to_encrypt": client_rows_to_insert
     }
 
     header = {"Authorization": token}
@@ -113,7 +113,7 @@ def insert_cloud_hash_rows(id_db, primary_key_list, table):
     response = requests.post(url, json=body, headers=header)
 
     if response.status_code != 200:
-        print("Ceggggegegege")
+        print("Deu ruim 1")
         return 400
 
     print(response.json())
@@ -127,12 +127,12 @@ def insert_cloud_hash_rows(id_db, primary_key_list, table):
     # Create table object of User Database and 
     # session of User Database to run sql operations
     table_user_db, session_user_db = create_table_session(
-        src_user_db_path, table, ["id", "line_hash"]
+        src_user_db_path, table, [PRIMARY_KEY, "line_hash"]
     )
 
     # Get index of primary key column to User Database
     user_primary_key_index = get_index_column_table_object(
-        table_user_db, "id"
+        table_user_db, PRIMARY_KEY
     )
     
     # Get database rows to insert on User Database
@@ -144,6 +144,22 @@ def insert_cloud_hash_rows(id_db, primary_key_list, table):
         
         user_rows_to_insert.append(result._asdict())
     print(user_rows_to_insert)
+
+    # Include hash rows in Cloud Database
+    url = f'{BASE_URL}/includeHashRows'
+    body = {
+        "id_db": id_db,
+        "table": table,
+        "hash_rows": user_rows_to_insert
+    }
+
+    header = {"Authorization": token}
+
+    response = requests.post(url, json=body, headers=header)
+
+    if response.status_code != 200:
+        print("Deu ruim 2")
+        return 400
 
     print(pd.DataFrame(data=client_rows_to_insert))
 

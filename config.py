@@ -9,6 +9,8 @@ USER_DATABASE = "root"
 PASSWORD_DATABASE = "Dd16012018"
 HOST = "localhost"
 PORT = "3306"
+PRIMARY_KEY = "id"
 
 # Informations Api
 BASE_URL = "http://127.0.0.1:5000"
+
