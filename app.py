@@ -1,16 +1,8 @@
-import os
-
-from flask import request
 from flask_migrate import Migrate
-from sqlalchemy_utils import database_exists, create_database
-from sqlalchemy.orm import Session
 
-from config import (
-    TYPE_DATABASE, USER_DATABASE, PASSWORD_DATABASE, 
-    HOST, PORT, NAME_DATABASE
-)
 from controller import (
-    app, db, user_controller, database_controller, sse_contoller
+    app, db, user_controller, database_controller, sse_contoller,
+    verification_controller
 )
 
 

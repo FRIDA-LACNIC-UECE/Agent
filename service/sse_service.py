@@ -1,14 +1,7 @@
-import time
-import requests
-
 import hashlib
 import pandas as pd
 from sqlalchemy import create_engine, MetaData, Table, select, inspect, update, insert
 from sqlalchemy.orm import Session
-
-from config import BASE_URL
-
-from service.user_service import loginApi
 
 
 def include_hash_column(engine_client_db, engine_user_db, table_client_db, table_user_db, src_table, raw_data):
@@ -27,8 +20,6 @@ def include_hash_column(engine_client_db, engine_user_db, table_client_db, table
             insert(table_user_db).
             values(id=raw_data.iloc[row]['id'], line_hash=hashed_line)
         )
-
-        #print(raw_data.iloc[row]['id'])
 
         session_user_db.execute(stmt)
 
@@ -62,7 +53,7 @@ def update_hash_column(engine_client_db, engine_user_db, table_client_db, table_
     session_user_db.close()
 
 
-def searchable_encryption(engine_client_db, engine_user_db, src_table, client_columns_list, table_client_db, table_user_db, master_key, hash_already_generated):
+def searchable_encryption(engine_client_db, engine_user_db, src_table, client_columns_list, table_client_db, table_user_db):
     # Section to run sql operation
     session_client_db = Session(engine_client_db) 
 
@@ -140,35 +131,7 @@ def generate_hash(src_client_db_path, src_user_db_path, src_table):
         i for i in engine_user_db._metadata.tables[src_table].columns if (i.name in client_user_list)]
     table_user_db = Table(src_table, engine_user_db._metadata)
 
-    master_key_file_name = "./service/masterkey" #password autentication
-    master_key = open(master_key_file_name).read()
-    if len(master_key) > 16:
-        print("the length of master key is larger than 16 bytes, only the first 16 bytes are used")
-        master_key = bytes(master_key[:16])
-
-    # Checking if the hash lines already exist
-    data_user_per_table = session_user_db.query(table_user_db).first()
-    hash_already_generated = False
-    
-    #If the hashed lines already exist then delete it to generate the hash again
-    if data_user_per_table: 
-        hash_already_generated = True
-
-    searchable_encryption(engine_client_db, engine_user_db, src_table, client_columns_list, table_client_db, table_user_db, master_key, hash_already_generated)
-
-
-def show_cloud_hash_rows(id_db, table, page, per_page, token):
-
-    url = f'{BASE_URL}/showHashRows'
-    body = {
-        "id_db": id_db,
-        "table": table,
-        "page": page,
-        "per_page": per_page
-    }
-
-    header = {"Authorization": token}
-
-    response = requests.post(url, json=body, headers=header)
-
-    return response.json()
+    searchable_encryption(
+        engine_client_db, engine_user_db, src_table, client_columns_list, 
+        table_client_db, table_user_db
+    )

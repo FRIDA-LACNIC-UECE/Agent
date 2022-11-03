@@ -1,7 +1,3 @@
-import os
-import threading
-from datetime import datetime
-
 from flask import jsonify
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, Text
 from sqlalchemy_utils import create_database, database_exists
@@ -10,8 +6,8 @@ from config import (
     TYPE_DATABASE, USER_DATABASE, PASSWORD_DATABASE, 
     HOST, PORT, NAME_DATABASE
 )
-from controller import app, db
-from service.database_service import check_thread, checking_changes
+from controller import app
+from service.database_service import create_table_session, get_index_column_table_object
 
 
 @app.route('/initializeDatabase', methods=['GET'])
@@ -54,14 +50,22 @@ def initializeDatabase():
         return jsonify({'message': "database_initialized"}), 201
     except:
         return jsonify({'message': 'database_invalid_data'}), 400
-    
-
-@app.route('/initializeVerification', methods=['GET'])
-def initializeVerification():
-    # Run task on thread
-    thread = threading.Thread(target=check_thread)
-    thread.start()
-    return jsonify({'message': "verification_initialized"}), 201
 
 
-    
+@app.route('/testRoute', methods=['GET'])
+def testRoute():
+    # Get path of Client DataBase
+    src_client_db_path = "{}://{}:{}@{}:{}/{}".format(
+        TYPE_DATABASE, USER_DATABASE, PASSWORD_DATABASE,
+        HOST, PORT, NAME_DATABASE
+    )
+
+    # Create table object of Client Database and 
+    # session of Client Database to run sql operations
+    table_client_db, session_client_db = create_table_session(
+        src_client_db_path, "nivel1"
+    )
+
+    get_index_column_table_object(table_client_db, "id")
+
+    return {"Message": "Deu bom!"}
