@@ -113,7 +113,6 @@ def insert_cloud_hash_rows(id_db, primary_key_list, table):
     response = requests.post(url, json=body, headers=header)
 
     if response.status_code != 200:
-        print("Deu ruim 1")
         return 400
 
     print(response.json())
@@ -143,7 +142,6 @@ def insert_cloud_hash_rows(id_db, primary_key_list, table):
         ).first()
         
         user_rows_to_insert.append(result._asdict())
-    print(user_rows_to_insert)
 
     # Include hash rows in Cloud Database
     url = f'{BASE_URL}/includeHashRows'
@@ -158,7 +156,6 @@ def insert_cloud_hash_rows(id_db, primary_key_list, table):
     response = requests.post(url, json=body, headers=header)
 
     if response.status_code != 200:
-        print("Deu ruim 2")
         return 400
 
     print(pd.DataFrame(data=client_rows_to_insert))

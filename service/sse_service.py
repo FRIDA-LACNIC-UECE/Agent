@@ -62,6 +62,8 @@ def searchable_encryption(engine_client_db, engine_user_db, src_table, client_co
     
     # Delete all rows of table
     session_user_db.query(table_user_db).delete()
+
+    # Commit changes
     session_user_db.commit()
     session_user_db.close()
 

@@ -9,8 +9,8 @@ from controller import app
 import service.sse_service as sse_service
 
 
-@app.route('/generate_hash', methods=['POST'])
-def generate_hash():
+@app.route('/generateHash', methods=['POST'])
+def generateHash():
     #try:
     src_client_db_path = "{}://{}:{}@{}:{}/{}".format(
         TYPE_DATABASE, USER_DATABASE, PASSWORD_DATABASE,

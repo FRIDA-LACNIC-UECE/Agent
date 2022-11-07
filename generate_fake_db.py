@@ -5,7 +5,7 @@ import re
 import pandas as pd
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine, insert, inspect, Table, MetaData
-from sqlalchemy.types import Integer, Enum, Date
+from sqlalchemy_utils import create_database, database_exists
 
 
 class Hash:
@@ -59,19 +59,25 @@ def insert_data(engine_db, table_name, num_of_rows):
         i for i in engine_db._metadata.tables[table_name].columns if (i.name in client_columns_list)]
     table_client_db = Table(table_name, engine_db._metadata)
 
+    # Create session of database
+    session_db = Session(engine_db)
+
+    # Delete all rows of table
+    session_db.query(table_client_db).delete()
+    session_db.commit()
+
     Faker.seed(123)
     faker = Faker(['pt_BR'])
 
     id = 0
-    
-    session_db = Session(engine_db)
 
     for row in range(num_of_rows):
 
         nome = faker.name()
         rg = fix_rg(faker.rg())
         cpf = fix_cpf(faker.cpf())
-        idade = random.randint(0, 100)
+        idade = random.randint(0, 1000)
+        altura = random.randint(0, 2000)
         data_de_nascimento = faker.date()
         endereco = faker.address()
         email = faker.ascii_email()
@@ -84,6 +90,7 @@ def insert_data(engine_db, table_name, num_of_rows):
             rg = rg,
             cpf = cpf,
             idade = idade,
+            altura = altura,
             data_de_nascimento = data_de_nascimento,
             endereco = endereco,
             email = email,
@@ -97,32 +104,45 @@ def insert_data(engine_db, table_name, num_of_rows):
     
     session_db.commit()
 
+
 if __name__ == '__main__':
 
     USER = 'root'
     DB_PW = 'Dd16012018'
     HOST = 'localhost'
-    DB = 'ficticio_database'
+    DB = 'fake_db'
+    TABLE_NAME = 'nivel1'
+
+    # If it needs create a table
+    CREATE_TABLE = False
+
+    
+    if not database_exists('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, DB)):
+        create_database('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, DB))
 
     engine_db = create_engine('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, DB))
     
-    '''create_table = "\
-        create table nivel1(\
-        id INT NOT NULL, \
-        nome VARCHAR(100) NOT NULL,\
-        rg VARCHAR(200) NOT NULL,\
-        cpf VARCHAR(200) NOT NULL,\
-        idade VARCHAR(200) NOT NULL,\
-        data_de_nascimento DATE,\
-        endereco VARCHAR(200),\
-        email VARCHAR(100),\
-        telefone VARCHAR(50),\
-        profissao VARCHAR(50),\
-        PRIMARY KEY (id)\
-        );"
+    if CREATE_TABLE:
+        create_table = f"\
+            create table {TABLE_NAME}(\
+            id INT NOT NULL, \
+            nome VARCHAR(100) NOT NULL,\
+            rg VARCHAR(200) NOT NULL,\
+            cpf VARCHAR(200) NOT NULL,\
+            idade INT NOT NULL,\
+            altura INT NOT NULL,\
+            data_de_nascimento DATE,\
+            endereco VARCHAR(200),\
+            email VARCHAR(100),\
+            telefone VARCHAR(50),\
+            profissao VARCHAR(50),\
+            PRIMARY KEY (id)\
+            );"
 
-    engine_db.execute(create_table)'''
+        engine_db.execute(create_table)
+        
+    # Insert fake data
+    insert_data(engine_db=engine_db, table_name=TABLE_NAME, num_of_rows=10000)
 
-    insert_data(engine_db=engine_db, table_name='nivel1', num_of_rows=10000)
-
+    # Finished
     print('FIM')

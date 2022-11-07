@@ -1,6 +1,6 @@
 import requests
 
-from sqlalchemy import create_engine, select, inspect, MetaData, Table
+from sqlalchemy import create_engine, select, inspect, MetaData, Table, func
 from sqlalchemy.orm import Session
 
 from config import BASE_URL
@@ -68,6 +68,7 @@ def get_columns_database(engine_db, table):
 
 
 def paginate_user_database(session_db, table_db, page, per_page):
+    
     # Get data in User Database
     query = session_db.query(
         table_db
@@ -83,5 +84,5 @@ def paginate_user_database(session_db, table_db, page, per_page):
     for row in query:
         results_user_data['primary_key'].append(row[0])
         results_user_data['row_hash'].append(row[1])
-    
+
     return results_user_data
