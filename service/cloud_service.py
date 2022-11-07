@@ -143,6 +143,21 @@ def insert_cloud_hash_rows(id_db, primary_key_list, table):
         
         user_rows_to_insert.append(result._asdict())
 
+    # Anonymization new row
+    url = f'{BASE_URL}/anonymizationDatabaseRows'
+    body = {
+        "id_db": id_db,
+        "table_name": table,
+        "rows_to_anonymization": user_rows_to_insert
+    }
+
+    header = {"Authorization": token}
+
+    response = requests.post(url, json=body, headers=header)
+
+    if response.status_code != 200:
+        return 400
+
     # Include hash rows in Cloud Database
     url = f'{BASE_URL}/includeHashRows'
     body = {

@@ -110,12 +110,11 @@ if __name__ == '__main__':
     USER = 'root'
     DB_PW = 'Dd16012018'
     HOST = 'localhost'
-    DB = 'fake_db'
-    TABLE_NAME = 'nivel1'
+    DB = 'test_db'
+    TABLE_NAME = 'nivel2'
 
     # If it needs create a table
-    CREATE_TABLE = False
-
+    CREATE_TABLE = True
     
     if not database_exists('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, DB)):
         create_database('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, DB))
