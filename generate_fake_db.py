@@ -8,7 +8,7 @@ from sqlalchemy import create_engine, insert, inspect, Table, MetaData
 from sqlalchemy_utils import create_database, database_exists
 
 
-class Hash:
+'''class Hash:
     def __init__(self, s: str):
         self.p, self.m, self.hash = 31, 10**9 + 7, 0
         self.compute_hashes(s)
@@ -28,7 +28,7 @@ class Hash:
  
 
 def get_hash_value(s: str):
-    return Hash(s).hash
+    return Hash(s).hash'''
 
 def fix_cpf(cpf):
     cpf = re.sub('[.-]','', cpf)
@@ -38,7 +38,7 @@ def fix_rg(rg):
     rg = str(rg)
     return rg.replace('X', '0')
 
-def insert_data(engine_db, table_name, num_of_rows):
+def insert_data(engine_db, table_name, num_of_rows, seed):
     # Creating connection with client database
     session_client_db = Session(engine_db)
 
@@ -66,7 +66,8 @@ def insert_data(engine_db, table_name, num_of_rows):
     session_db.query(table_client_db).delete()
     session_db.commit()
 
-    Faker.seed(123)
+    Faker.seed(seed)
+    random.seed(seed)
     faker = Faker(['pt_BR'])
 
     id = 0
@@ -79,6 +80,8 @@ def insert_data(engine_db, table_name, num_of_rows):
         idade = random.randint(0, 1000)
         altura = random.randint(0, 2000)
         data_de_nascimento = faker.date()
+        ipv4 = faker.ipv4(),
+        ipv6 = faker.ipv6()
         endereco = faker.address()
         email = faker.ascii_email()
         telefone = faker.cellphone_number()
@@ -92,6 +95,8 @@ def insert_data(engine_db, table_name, num_of_rows):
             idade = idade,
             altura = altura,
             data_de_nascimento = data_de_nascimento,
+            ipv4 = ipv4,
+            ipv6 = ipv6,
             endereco = endereco,
             email = email,
             telefone = telefone,
@@ -111,7 +116,8 @@ if __name__ == '__main__':
     DB_PW = 'Dd16012018'
     HOST = 'localhost'
     DB = 'test_db'
-    TABLE_NAME = 'nivel2'
+    DB_BACKUP = 'backup_db'
+    TABLE_NAME = 'nivel1'
 
     # If it needs create a table
     CREATE_TABLE = True
@@ -119,7 +125,11 @@ if __name__ == '__main__':
     if not database_exists('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, DB)):
         create_database('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, DB))
 
-    engine_db = create_engine('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, DB))
+    if not database_exists('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, DB_BACKUP)):
+        create_database('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, DB_BACKUP))
+
+    engine_db_test = create_engine('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, DB))
+    engine_db_backup = create_engine('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, DB_BACKUP))
     
     if CREATE_TABLE:
         create_table = f"\
@@ -131,6 +141,8 @@ if __name__ == '__main__':
             idade INT NOT NULL,\
             altura INT NOT NULL,\
             data_de_nascimento DATE,\
+            ipv4 VARCHAR(20),\
+            ipv6 VARCHAR(40),\
             endereco VARCHAR(200),\
             email VARCHAR(100),\
             telefone VARCHAR(50),\
@@ -138,10 +150,13 @@ if __name__ == '__main__':
             PRIMARY KEY (id)\
             );"
 
-        engine_db.execute(create_table)
+        engine_db_test.execute(create_table)
+        engine_db_backup.execute(create_table)
         
     # Insert fake data
-    insert_data(engine_db=engine_db, table_name=TABLE_NAME, num_of_rows=10000)
+    seed = 123
+    insert_data(engine_db=engine_db_test, table_name=TABLE_NAME, num_of_rows=10000, seed=seed)
+    insert_data(engine_db=engine_db_backup, table_name=TABLE_NAME, num_of_rows=10000, seed=seed)
 
     # Finished
     print('FIM')

@@ -6,10 +6,10 @@ from config import (
     HOST, PORT, NAME_DATABASE
 )
 from controller import app
-import service.sse_service as sse_service
+from service.sse_service import generate_hash_column
 
 
-@app.route('/generateHash', methods=['POST'])
+@app.route('/generateHashColumn', methods=['POST'])
 def generateHash():
     #try:
     src_client_db_path = "{}://{}:{}@{}:{}/{}".format(
@@ -30,9 +30,9 @@ def generateHash():
 
         # Run hash generator for each client database table
         for table in list(engine_user_db.table_names()):
-            sse_service.generate_hash(src_client_db_path, src_user_db_path, table)
+            generate_hash_column(src_client_db_path, src_user_db_path, table)
     else:
-        sse_service.generate_hash(src_client_db_path, src_user_db_path, src_table)
+        generate_hash_column(src_client_db_path, src_user_db_path, src_table)
 
     return jsonify({'message': "hash_generated"}), 201
     #except:

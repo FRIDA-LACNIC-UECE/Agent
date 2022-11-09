@@ -13,7 +13,7 @@ from service.cloud_service import (
     insert_cloud_hash_rows, delete_cloud_hash_rows
 )
 from service.database_service import paginate_user_database, get_index_column_table_object
-from service.sse_service import generate_hash
+from service.sse_service import generate_hash_column
 from service.user_service import loginApi
 
 
@@ -37,7 +37,7 @@ def checking_changes():
     # Generate rows hash each table
     for table in list(engine_user_db.table_names()):
         print(table)
-        generate_hash(src_client_db_path, src_user_db_path, table)
+        generate_hash_column(src_client_db_path, src_user_db_path, table)
 
     # Get id cloud database 
     id_db, state_code_id_db = get_id_cloud_database()
@@ -111,7 +111,6 @@ def checking_changes():
             results_cloud_data = show_cloud_hash_rows(
                 id_db, table, page, per_page, token
             )['result_query']
-            print(results_cloud_data)
 
             # Get data in User Database
             results_user_data = paginate_user_database(
@@ -142,8 +141,6 @@ def checking_changes():
         # Delete rows on cloud database
         if len(remove_ids) != 0:
             delete_cloud_hash_rows(id_db, remove_ids, table)
-        
-        break
 
     session_user_db.commit()
     session_user_db.close()
