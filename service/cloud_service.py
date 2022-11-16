@@ -2,6 +2,10 @@ import requests
 
 import pandas as pd
 
+import json
+import datetime
+from json import JSONEncoder
+
 from config import (
     TYPE_DATABASE, USER_DATABASE, PASSWORD_DATABASE, 
     HOST, PORT, NAME_DATABASE, BASE_URL, PRIMARY_KEY
@@ -13,6 +17,17 @@ from service.database_service import (
     get_sensitive_columns
 )
 from service.sse_service import generate_hash_rows
+
+
+# subclass JSONEncoder
+class DateTimeEncoder(JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, (datetime.date, datetime.datetime)):
+            print(obj)
+            return obj.isoformat()
+        elif isinstance(obj, (str)):
+            print(obj)
+            return obj.encode("utf-8")
 
 
 def get_id_cloud_database():
@@ -98,6 +113,20 @@ def insert_cloud_hash_rows(id_db, primary_key_list, table_name):
         
         news_rows_client_db.append(result._asdict())
 
+    # Get date type columns on news rows of Client Database
+    first_row = news_rows_client_db[0]
+
+    data_type_keys = []
+    for key in first_row.keys():
+        type_data = str(type(first_row[key]).__name__)
+        if type_data == "date":
+            data_type_keys.append(key)
+    
+    # Convert from date type to string
+    for row in news_rows_client_db:
+        for key in data_type_keys:
+            row[key] = row[key].strftime("%Y-%m-%d")
+
     # Encrypt new rows and send Cloud Database
     url = f'{BASE_URL}/encryptDatabaseRows'
     body = {
@@ -107,7 +136,7 @@ def insert_cloud_hash_rows(id_db, primary_key_list, table_name):
     }
     header = {"Authorization": token}
     response = requests.post(url, json=body, headers=header)
-
+    
     if response.status_code != 200:
         return 400
     print("--- Encriptou as novas linhas ---")

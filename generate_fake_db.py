@@ -115,21 +115,26 @@ if __name__ == '__main__':
     USER = 'root'
     DB_PW = 'Dd16012018'
     HOST = 'localhost'
-    DB = 'test_db'
-    DB_BACKUP = 'backup_db'
+    DB_NAME = 'test_db'
     TABLE_NAME = 'nivel1'
-
-    # If it needs create a table
-    CREATE_TABLE = True
     
-    if not database_exists('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, DB)):
-        create_database('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, DB))
+    if not database_exists('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, DB_NAME)):
+        create_database('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, DB_NAME))
 
-    if not database_exists('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, DB_BACKUP)):
-        create_database('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, DB_BACKUP))
+    if not database_exists('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, f"{DB_NAME}_backup")):
+        create_database('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, f"{DB_NAME}_backup"))
 
-    engine_db_test = create_engine('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, DB))
-    engine_db_backup = create_engine('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, DB_BACKUP))
+    engine_db_test = create_engine('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, DB_NAME))
+    engine_db_backup = create_engine('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, f"{DB_NAME}_backup"))
+
+    list_columns = list(engine_db_test.table_names())
+
+    CREATE_TABLE = None
+    
+    if TABLE_NAME in list_columns:
+        CREATE_TABLE = False
+    else:
+        CREATE_TABLE = True
     
     if CREATE_TABLE:
         create_table = f"\
