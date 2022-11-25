@@ -1,14 +1,13 @@
 import random
-from faker import Faker
-
 import re
+
 import pandas as pd
+from faker import Faker
+from sqlalchemy import MetaData, Table, create_engine, insert, inspect
 from sqlalchemy.orm import Session
-from sqlalchemy import create_engine, insert, inspect, Table, MetaData
 from sqlalchemy_utils import create_database, database_exists
 
-
-'''class Hash:
+"""class Hash:
     def __init__(self, s: str):
         self.p, self.m, self.hash = 31, 10**9 + 7, 0
         self.compute_hashes(s)
@@ -28,15 +27,18 @@ from sqlalchemy_utils import create_database, database_exists
  
 
 def get_hash_value(s: str):
-    return Hash(s).hash'''
+    return Hash(s).hash"""
+
 
 def fix_cpf(cpf):
-    cpf = re.sub('[.-]','', cpf)
+    cpf = re.sub("[.-]", "", cpf)
     return cpf
+
 
 def fix_rg(rg):
     rg = str(rg)
-    return rg.replace('X', '0')
+    return rg.replace("X", "0")
+
 
 def insert_data(engine_db, table_name, num_of_rows, seed):
     # Creating connection with client database
@@ -47,16 +49,19 @@ def insert_data(engine_db, table_name, num_of_rows, seed):
     insp = inspect(engine_db)
     columns_table = insp.get_columns(table_name)
 
-    for c in columns_table :
-        client_columns_list.append(str(c['name']))
-    #print(client_columns_list)
+    for c in columns_table:
+        client_columns_list.append(str(c["name"]))
+    # print(client_columns_list)
 
     # Create engine, reflect existing columns, and create table object for oldTable
     # change this for your source database
     engine_db._metadata = MetaData(bind=engine_db)
     engine_db._metadata.reflect(engine_db)  # get columns from existing table
     engine_db._metadata.tables[table_name].columns = [
-        i for i in engine_db._metadata.tables[table_name].columns if (i.name in client_columns_list)]
+        i
+        for i in engine_db._metadata.tables[table_name].columns
+        if (i.name in client_columns_list)
+    ]
     table_client_db = Table(table_name, engine_db._metadata)
 
     # Create session of database
@@ -68,7 +73,7 @@ def insert_data(engine_db, table_name, num_of_rows, seed):
 
     Faker.seed(seed)
     random.seed(seed)
-    faker = Faker(['pt_BR'])
+    faker = Faker(["pt_BR"])
 
     id = 0
 
@@ -80,7 +85,7 @@ def insert_data(engine_db, table_name, num_of_rows, seed):
         idade = random.randint(0, 1000)
         altura = random.randint(0, 2000)
         data_de_nascimento = faker.date()
-        ipv4 = faker.ipv4(),
+        ipv4 = (faker.ipv4(),)
         ipv6 = faker.ipv6()
         endereco = faker.address()
         email = faker.ascii_email()
@@ -88,54 +93,75 @@ def insert_data(engine_db, table_name, num_of_rows, seed):
         profissao = faker.job()
 
         stmt = insert(table_client_db).values(
-            id = id,
-            nome = nome,
-            rg = rg,
-            cpf = cpf,
-            idade = idade,
-            altura = altura,
-            data_de_nascimento = data_de_nascimento,
-            ipv4 = ipv4,
-            ipv6 = ipv6,
-            endereco = endereco,
-            email = email,
-            telefone = telefone,
-            profissao = profissao
+            id=id,
+            nome=nome,
+            rg=rg,
+            cpf=cpf,
+            idade=idade,
+            altura=altura,
+            data_de_nascimento=data_de_nascimento,
+            ipv4=ipv4,
+            ipv6=ipv6,
+            endereco=endereco,
+            email=email,
+            telefone=telefone,
+            profissao=profissao,
         )
 
         id += 1
 
         session_db.execute(stmt)
-    
+
     session_db.commit()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
-    USER = 'root'
-    DB_PW = 'Dd16012018'
-    HOST = 'localhost'
-    DB_NAME = 'test_db'
-    TABLE_NAME = 'nivel1'
-    
-    if not database_exists('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, DB_NAME)):
-        create_database('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, DB_NAME))
+    Faker.seed(152)
+    random.seed(152)
+    faker = Faker(["pt_BR"])
 
-    if not database_exists('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, f"{DB_NAME}_backup")):
-        create_database('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, f"{DB_NAME}_backup"))
+    id = 0
 
-    engine_db_test = create_engine('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, DB_NAME))
-    engine_db_backup = create_engine('mysql://{}:{}@{}:3306/{}'.format(USER, DB_PW, HOST, f"{DB_NAME}_backup"))
+    data_de_nascimento = faker.date()
+    print(data_de_nascimento)
+
+    exit()
+
+    USER = "root"
+    DB_PW = "Dd16012018"
+    HOST = "localhost"
+    DB_NAME = "test_db"
+    TABLE_NAME = "nivel1"
+
+    if not database_exists(
+        "mysql://{}:{}@{}:3306/{}".format(USER, DB_PW, HOST, DB_NAME)
+    ):
+        create_database("mysql://{}:{}@{}:3306/{}".format(USER, DB_PW, HOST, DB_NAME))
+
+    if not database_exists(
+        "mysql://{}:{}@{}:3306/{}".format(USER, DB_PW, HOST, f"{DB_NAME}_backup")
+    ):
+        create_database(
+            "mysql://{}:{}@{}:3306/{}".format(USER, DB_PW, HOST, f"{DB_NAME}_backup")
+        )
+
+    engine_db_test = create_engine(
+        "mysql://{}:{}@{}:3306/{}".format(USER, DB_PW, HOST, DB_NAME)
+    )
+    engine_db_backup = create_engine(
+        "mysql://{}:{}@{}:3306/{}".format(USER, DB_PW, HOST, f"{DB_NAME}_backup")
+    )
 
     list_columns = list(engine_db_test.table_names())
 
     CREATE_TABLE = None
-    
+
     if TABLE_NAME in list_columns:
         CREATE_TABLE = False
     else:
         CREATE_TABLE = True
-    
+
     if CREATE_TABLE:
         create_table = f"\
             create table {TABLE_NAME}(\
@@ -157,11 +183,15 @@ if __name__ == '__main__':
 
         engine_db_test.execute(create_table)
         engine_db_backup.execute(create_table)
-        
+
     # Insert fake data
     seed = 123
-    insert_data(engine_db=engine_db_test, table_name=TABLE_NAME, num_of_rows=10000, seed=seed)
-    insert_data(engine_db=engine_db_backup, table_name=TABLE_NAME, num_of_rows=10000, seed=seed)
+    insert_data(
+        engine_db=engine_db_test, table_name=TABLE_NAME, num_of_rows=10000, seed=seed
+    )
+    insert_data(
+        engine_db=engine_db_backup, table_name=TABLE_NAME, num_of_rows=10000, seed=seed
+    )
 
     # Finished
-    print('FIM')
+    print("FIM")
