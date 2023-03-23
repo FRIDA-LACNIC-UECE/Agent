@@ -100,7 +100,7 @@ def generate_hash_column(table_name):
 
     # Get sensitive columns of table
     sensitive_columns = get_sensitive_columns(ID_DB, table_name, token)
-    client_columns_list = [primary_key_name] + sensitive_columns
+    client_columns_list = [primary_key_name] + list(sensitive_columns)
 
     # Create table object of Client Database and
     # session of Client Database to run sql operations
