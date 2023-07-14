@@ -13,8 +13,7 @@ _default_message_response = DefaultResponsesDTO.message_response
 class AgentDatabaseStart(Resource):
     @api.doc("Agent database start")
     @api.response(200, "agent_database_started", _default_message_response)
-    @api.response(400, "Input payload validation failed", _default_message_response)
-    @api.response(401, "token_not_found\ntoken_invalid", _default_message_response)
+    @api.response(500, "agent_database_not_started", _default_message_response)
     def post(self) -> tuple[dict[str, str], int]:
         """Agent database start"""
         agent_database_start()

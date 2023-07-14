@@ -4,11 +4,22 @@ from sqlalchemy.orm import Session
 
 from app.main.config import app_config
 from app.main.config_client import ConfigClient
-from app.main.exceptions import ValidationException
+from app.main.exceptions import DefaultException, ValidationException
+
+
+def get_client_databases(token: str) -> list[dict]:
+    response_databases = requests.get(
+        url=f"{app_config.API_URL}/database",
+        headers={"Authorization": token},
+    )
+
+    if response_databases.status_code != 200:
+        raise DefaultException("client_databases_not_loaded", code=500)
+
+    return response_databases.json()["items"]
 
 
 def get_sensitive_columns(database_id, table_name, token) -> dict:
-
     # Send requests
     response = requests.get(
         url=f"{app_config.API_URL}/database/sensitive_columns/{database_id}?table_name={table_name}",
@@ -37,7 +48,6 @@ def get_database_columns(engine, table_name) -> list[str]:
 
 
 def get_primary_key(table_name) -> str:
-
     # Create table object of database
     table_object_db, _ = create_table_session(
         database_url=ConfigClient.CLIENT_DATABASE_URL, table_name=table_name
@@ -88,7 +98,6 @@ def get_index_column_table_object(table_object, column_name) -> int | None:
 
 
 def get_tables_names(database_url) -> list[str]:
-
     try:
         engine_db = create_engine(database_url)
     except:
@@ -98,7 +107,6 @@ def get_tables_names(database_url) -> list[str]:
 
 
 def paginate_agent_database(session, table_object, page, per_page) -> dict:
-
     # Get primary key column index in table object
     primary_key_index = get_index_column_table_object(
         table_object=table_object,
