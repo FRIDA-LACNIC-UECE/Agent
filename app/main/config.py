@@ -5,6 +5,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config:
     DEBUG = False
+
     # Remove additional message on 404 responses
     RESTX_ERROR_404_HELP = False
 
@@ -13,6 +14,7 @@ class Config:
 
 
 class DevelopmentConfig(Config):
+    DEBUG = True
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     ENV = "development"
     HOST = "localhost"
@@ -20,18 +22,6 @@ class DevelopmentConfig(Config):
 
     # Informations Api
     API_URL = "http://127.0.0.1:5000"
-
-    # Informations client
-    USER_EMAIL = "123"
-    USER_PASSWORD = "456"
-    USER_ID = 2
-
-    # Informations client database
-    ID_DATABASE_CLIENT = 3
-    DATABASE_CLIENT_URL = "456"
-
-    # Informations agent database
-    DATABASE_AGENT_URL = "698"
 
     # uncomment the line below to see SQLALCHEMY queries
     # SQLALCHEMY_ECHO = True
@@ -54,12 +44,14 @@ class TestingConfig(Config):
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     ENV = "testing"
     PORT = 3000
+    HOST = "0.0.0.0"
 
 
 class ProductionConfig(Config):
     DEBUG = False
     ENV = "production"
     PORT = 3000
+    HOST = "0.0.0.0"
 
 
 config_by_name = dict(

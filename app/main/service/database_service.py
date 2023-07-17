@@ -1,103 +1,67 @@
 import requests
-from sqlalchemy import MetaData, Table, create_engine, inspect
-from sqlalchemy.orm import Session
 
+from sqlalchemy import MetaData, Table, create_engine
 from app.main.config import app_config
+from app.main.exceptions import DefaultException
+from sqlalchemy import Column, Integer, MetaData, Table, Text, create_engine
+from sqlalchemy_utils import create_database, database_exists, drop_database
 from app.main.config_client import ConfigClient
-from app.main.exceptions import DefaultException, ValidationException
+
+from app.main.service.table_service import get_primary_key, TableConnection
+
+from app.main.exceptions import DefaultException
+
+
+def agent_database_start() -> None:
+    try:
+        # Creating connection with client database
+        engine_client_db = create_engine(ConfigClient.CLIENT_DATABASE_URL)
+
+        if database_exists(url=ConfigClient.AGENT_DATABASE_URL):
+            drop_database(url=ConfigClient.AGENT_DATABASE_URL)
+        create_database(url=ConfigClient.AGENT_DATABASE_URL)
+
+        # Creating connection with agent database
+        engine_agent_db = create_engine(ConfigClient.AGENT_DATABASE_URL)
+
+        # Create engine, reflect existing columns, and create table object for oldTable
+        # change this for your source database
+        engine_agent_db._metadata = MetaData(bind=engine_agent_db)
+        engine_agent_db._metadata.reflect(
+            engine_agent_db
+        )  # get columns from existing table
+
+        for table in list(engine_client_db.table_names()):
+            table_agent_db = Table(
+                table,
+                engine_agent_db._metadata,
+                Column("primary_key", Integer),
+                Column("line_hash", Text),
+            )
+
+            table_agent_db.create()
+
+    except:
+        raise DefaultException("agent_database_not_started", code=500)
+
+    finally:
+        engine_client_db.dispose()
+        engine_agent_db.dispose()
 
 
 def get_client_databases(token: str) -> list[dict]:
-    response_databases = requests.get(
+    response = requests.get(
         url=f"{app_config.API_URL}/database",
         headers={"Authorization": token},
     )
 
-    if response_databases.status_code != 200:
+    if response.status_code != 200:
         raise DefaultException("client_databases_not_loaded", code=500)
 
-    return response_databases.json()["items"]
+    return response.json()["items"]
 
 
-def get_sensitive_columns(database_id, table_name, token) -> dict:
-    # Send requests
-    response = requests.get(
-        url=f"{app_config.API_URL}/database/sensitive_columns/{database_id}?table_name={table_name}",
-        headers={"Authorization": token},
-    )
-
-    # Check status code
-    if response.status_code != 200:
-        raise ValidationException(
-            errors={"database": "database_invalid_data"},
-            message="Input payload validation failed",
-        )
-
-    return response.json()["sensitive_column_names"]
-
-
-def get_database_columns(engine, table_name) -> list[str]:
-    columns_list = []
-    insp = inspect(engine)
-    columns_table = insp.get_columns(table_name)
-
-    for c in columns_table:
-        columns_list.append(str(c["name"]))
-
-    return columns_list
-
-
-def get_primary_key(table_name) -> str:
-    # Create table object of database
-    table_object_db, _ = create_table_session(
-        database_url=ConfigClient.CLIENT_DATABASE_URL, table_name=table_name
-    )
-
-    return [key.name for key in inspect(table_object_db).primary_key][0]
-
-
-def create_table_session(database_url, table_name, columns_list=None) -> tuple:
-    # Create engine, reflect existing columns
-    try:
-        engine = create_engine(database_url)
-    except:
-        return None, None
-
-    engine._metadata = MetaData(bind=engine)
-
-    # Get columns from existing table
-    engine._metadata.reflect(engine)
-
-    if columns_list == None:
-        columns_list = get_database_columns(engine=engine, table_name=table_name)
-
-    engine._metadata.tables[table_name].columns = [
-        i
-        for i in engine._metadata.tables[table_name].columns
-        if (i.name in columns_list)
-    ]
-
-    # Create table object of Client Database
-    table_object_db = Table(table_name, engine._metadata)
-
-    # Create session of Client Database to run sql operations
-    session_db = Session(engine)
-
-    return table_object_db, session_db
-
-
-def get_index_column_table_object(table_object, column_name) -> int | None:
-    index = 0
-
-    for column in table_object.c:
-        if column.name == column_name:
-            return index
-        index += 1
-
-    return None
-
-
-def get_tables_names(database_url) -> list[str]:
+def get_tables_names(database_url: str) -> list[str]:
     try:
         engine_db = create_engine(database_url)
     except:
@@ -106,17 +70,15 @@ def get_tables_names(database_url) -> list[str]:
     return list(engine_db.table_names())
 
 
-def paginate_agent_database(session, table_object, page, per_page) -> dict:
-    # Get primary key column index in table object
-    primary_key_index = get_index_column_table_object(
-        table_object=table_object,
-        column_name=get_primary_key(table_name=f"{table_object}"),
-    )
+def paginate_agent_database(
+    table_connection: TableConnection, page: int, per_page: int
+) -> dict[str, any]:
+    primary_key_name = get_primary_key(table_name=table_connection.table_name)
 
-    # Get data in agent database
-    query = session.query(table_object).filter(
-        table_object.c[primary_key_index] >= (page * per_page),
-        table_object.c[primary_key_index] <= ((page + 1) * per_page),
+    query = table_connection.session.query(table_connection.table).filter(
+        table_connection.get_column(column_name=primary_key_name) >= (page * per_page),
+        table_connection.get_column(column_name=primary_key_name)
+        <= ((page + 1) * per_page),
     )
 
     results_agent_data = {}
@@ -128,3 +90,25 @@ def paginate_agent_database(session, table_object, page, per_page) -> dict:
         results_agent_data["row_hash"].append(row[1])
 
     return results_agent_data
+
+
+def paginate_agent_database(
+    table_connection: TableConnection, page: int, per_page: int
+) -> dict[str, any]:
+    primary_key_name = get_primary_key(table_name=table_connection.table_name)
+
+    query = table_connection.session.query(table_connection.table).filter(
+        table_connection.get_column(column_name="primary_key") >= (page * per_page),
+        table_connection.get_column(column_name="primary_key")
+        <= ((page + 1) * per_page),
+    )
+
+    results_user_data = {}
+    results_user_data["primary_key"] = []
+    results_user_data["row_hash"] = []
+
+    for row in query:
+        results_user_data["primary_key"].append(row[0])
+        results_user_data["row_hash"].append(row[1])
+
+    return results_user_data

@@ -108,5 +108,8 @@ ENV/
 /migrations
 *.log
 
-#pytest
+# pytest
 .pytest_cache/
+
+# client config
+*config_client*

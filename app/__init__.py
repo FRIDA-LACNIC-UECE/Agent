@@ -1,5 +1,3 @@
-# docker compose up  --build --force-recreate --no-deps
-
 from flask_restx import Api
 
 from .main.controller import agent_database_ns, agent_start_ns, agent_verification_ns
@@ -10,7 +8,7 @@ authorizations = {"apikey": {"type": "apiKey", "in": "header", "name": "Authoriz
 
 api = Api(
     authorizations=authorizations,
-    title="Frida Agent",
+    title="SysPAD Monitor Agent",
     version="1.0",
     description="Database Changes Monitor",
     security="apikey",

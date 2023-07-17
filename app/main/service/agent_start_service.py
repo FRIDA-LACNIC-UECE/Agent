@@ -12,7 +12,8 @@ def write_file_config(
             config_client.write(f'\tUSER_PASSWORD = "{user_password}"\n')
 
             config_client.write(f'\tCLIENT_DATABASE_ID = {agent_database["id"]}\n')
-            client_database_url = "mysql://{}:{}@{}:{}/{}".format(
+            client_database_url = "{}://{}:{}@{}:{}/{}".format(
+                agent_database["valid_database"]["dialect"],
                 agent_database["username"],
                 agent_database["password"],
                 agent_database["host"],
@@ -22,7 +23,8 @@ def write_file_config(
 
             config_client.write(f'\tCLIENT_DATABASE_URL = "{client_database_url}"\n')
 
-            agent_database_url = "mysql://{}:{}@{}:{}/{}_user_U{}DB{}".format(
+            agent_database_url = "{}://{}:{}@{}:{}/{}_user_U{}DB{}".format(
+                agent_database["valid_database"]["dialect"],
                 agent_database["username"],
                 agent_database["password"],
                 agent_database["host"],
