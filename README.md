@@ -1,4 +1,4 @@
-**Syspad - v1.1.0**
+**SysPAD Monitor Agent - v1.1.0**
 
 **Description**
 
