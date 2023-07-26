@@ -1,32 +1,68 @@
-# Frida-Lanic-UECE-2022
+**Syspad - v1.1.0**
 
-This application is being developed by a team of researchers and developers from the State University of Ceará.
+**Description**
 
-Status
-======
+The Database Monitor Agent is an application developed in Flask, a web development framework in Python, that aims to monitor and record insertions, updates, and deletions operations in a specific database.
 
-This project is in active development and is NOT ready for production use.
+**Key Features**
 
-Technologies Used
-=================
+- Agent start
+- Agent database start
+- Agent verification start
 
-- [Python](python.org) - Open source programming language.
-- [Flask](https://flask.palletsprojects.com/en/2.2.x/) - Python Web Framework.
-- [SQLAlchemy](sqlalchemy.org/) - Object-Relational Mapper (ORM).
+**Complete Documentation**
 
-Requirements
-=================
+The complete API documentation, including details about all available endpoints, request parameters, response formats, and usage examples, can be found at [DOCUMENTATION LINK](https://github.com/FRIDA-LACNIC-UECE/documentation/blob/main/SysPAD%20Documentation.pdf) or SWAGGER DOCUMENTATION at http://localhost:3000 after executed.
 
-To run this back-end project, you'll need python installed.
+**Technologies Used**
 
-Go to ./api directory using this command:
+- Programming Language: Python (Version 3.10)
+- Framework/API/Web Framework: Flask Framework
+- Supported Database: MySQL and PostgreSQL
+- Object Relational Mapping: SqlAlchemy
 
-    cd ./api
+**Installation and Usage**
 
-Install the python libraries using this command:
+**Without docker:**  
 
-    python install -r requirements.txt
+1. Clone this repository to your local machine using the following command:
 
-Run API using this command:
+   ```
+   git clone https://github.com/FRIDA-LACNIC-UECE/agent.git
+   ```
 
-    python3 app.py
+2. Navigate to the project directory:
+
+   ```
+   cd agent
+   ```
+
+3. Install the necessary dependencies:
+
+   ```
+   pip3 install -r requirements.txt
+   ```
+
+4. Start the server:
+
+   ```
+   python3 appplication.py
+   ```
+
+**With docker:** 
+
+1. Start the docker compose:
+
+   ```
+   docker compose up
+   ```
+
+**Contributing**
+
+If you would like to contribute to the project, please follow these steps:
+
+1. Fork this repository.
+2. Create a branch for your feature (`git checkout -b feature/your-feature`).
+3. Commit your changes (`git commit -m 'Add your feature'`).
+4. Push the branch (`git push origin feature/your-feature`).
+5. Open a pull request.
